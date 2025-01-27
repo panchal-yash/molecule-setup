@@ -28,7 +28,7 @@
             stage('Set Build Name'){
                 steps {
                     script {
-                        currentBuild.displayName = "${env.BUILD_NUMBER}-${product_to_test}-${action_to_test}"
+                        currentBuild.displayName = "${env.BUILD_NUMBER}-mysql-server-installation-test"
                     }
                 }
             }
@@ -36,7 +36,7 @@
             stage('Checkout') {
                 steps {
                     deleteDir()
-                    git poll: false, branch: "master", url: "https://github.com/panchal-yash/molecule-setup.git"
+                    git poll: false, branch: "main", url: "https://github.com/panchal-yash/molecule-setup.git"
                 }
             }
 
@@ -67,7 +67,7 @@ def moleculePdpsJenkinsCreds() {
 
 
 def OperatingSystems() {
-    return ["ubuntu-focal","ubuntu-jammy","debian-12"]
+    return ["ubuntu-noble","ubuntu-jammy","debian-12"]
 }
 
 

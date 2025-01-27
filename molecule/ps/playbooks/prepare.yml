@@ -8,17 +8,15 @@
       ansible.builtin.package:
         name:
           - wget
-          - gnupg
         state: present
 
-    - name: Add MySQL APT repository
-      ansible.builtin.shell:
-        cmd: |
-          wget https://dev.mysql.com/get/mysql-apt-config_0.8.26-1_all.deb
-          dpkg -i mysql-apt-config_0.8.26-1_all.deb
-        args:
-          creates: /etc/apt/sources.list.d/mysql.list
+    - name: Download MySQL APT configuration package
+      ansible.builtin.get_url:
+        url: https://dev.mysql.com/get/mysql-apt-config_0.8.26-1_all.deb
+        dest: /tmp/mysql-apt-config.deb
+        mode: '0644'
 
-    - name: Update APT cache
-      ansible.builtin.apt:
-        update_cache: yes
+    - name: Install MySQL APT configuration package
+      ansible.builtin.shell:
+        cmd: dpkg -i /tmp/mysql-apt-config.deb
+        executable: /bin/bash
