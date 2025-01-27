@@ -1,0 +1,19 @@
+- job:
+    name: package-testing-demo
+    project-type: pipeline
+    description: |
+        Do not edit this job through the web!
+    properties:
+        - build-discarder:
+            num-to-keep: 15
+    concurrent: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: https://github.com/panchal-yash/molecule-setup.git
+                branches:
+                    - 'main'
+                wipe-workspace: true
+        lightweight-checkout: true
+        script-path: jenkins/package-testing-demo.groovy
+

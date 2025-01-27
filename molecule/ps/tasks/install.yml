@@ -1,0 +1,12 @@
+---
+- name: Install MySQL Server
+  ansible.builtin.apt:
+    name:
+      - mysql-server
+    state: present
+
+- name: Start and enable MySQL service
+  ansible.builtin.systemd:
+    name: mysql
+    state: started
+    enabled: yes
