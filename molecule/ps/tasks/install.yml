@@ -1,12 +1,17 @@
 ---
-- name: Install MySQL Server
-  ansible.builtin.apt:
-    name:
-      - mysql-server
-    state: present
+  - name: Add Percona APT repository
+    ansible.builtin.apt_repository:
+      repo: "deb https://repo.percona.com/apt {{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} main"
+      state: present
+      filename: percona
+      update_cache: yes
 
-- name: Start and enable MySQL service
-  ansible.builtin.systemd:
-    name: mysql
-    state: started
-    enabled: yes
+  - name: Import Percona GPG key
+    ansible.builtin.apt_key:
+      url: https://repo.percona.com/apt/percona-release.gpg
+      state: present
+
+  - name: Update APT cache
+    ansible.builtin.apt:
+      update_cache: yes
+
