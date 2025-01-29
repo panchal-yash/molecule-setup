@@ -10,4 +10,4 @@ def test_service_is_running(host):
 
 def test_service_is_notrunning(host):
     service = host.service("mysql")
-    assert service.is_stopped
+    assert not service.is_running
