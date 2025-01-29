@@ -2,14 +2,6 @@
     agent {
         label 'min-bookworm-x64'
     }
-    environment {
-        product_to_test = "${params.product_to_test}"
-        git_repo = "${params.git_repo}"
-        install_repo = "${params.install_repo}"
-        action_to_test  = "${params.action_to_test}"
-        check_warnings = "${params.check_warnings}"
-        install_mysql_shell = "${params.install_mysql_shell}"
-    }
     options {
         withCredentials(moleculePdpsJenkinsCreds())
     }
@@ -91,17 +83,4 @@ def installMolecule() {
         """
 }
 
-def loadEnvFile(envFilePath) {
-    def envMap = []
-    def envFileContent = readFile(file: envFilePath).trim().split('\n')
-    envFileContent.each { line ->
-        if (line && !line.startsWith('#')) {
-            def parts = line.split('=')
-            if (parts.length == 2) {
-                envMap << "${parts[0].trim()}=${parts[1].trim()}"
-            }
-        }
-    }
-    return envMap
-}
 
