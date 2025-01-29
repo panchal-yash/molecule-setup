@@ -23,6 +23,8 @@ provisioner:
     prepare: ../../playbooks/prepare.yml
     cleanup: ../../playbooks/cleanup.yml
     converge: ../../playbooks/playbook.yml
+verifier:
+  name: testinfra
 scenario:
   name: ubuntu-jammy
   destroy_sequence:
