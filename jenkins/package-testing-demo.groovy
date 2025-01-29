@@ -10,16 +10,6 @@
         check_warnings = "${params.check_warnings}"
         install_mysql_shell = "${params.install_mysql_shell}"
     }
-    parameters {
-        choice(
-            choices: [
-                'install',
-                'upgrade'
-            ],
-            description: 'Action To Test',
-            name: 'action_to_test'
-        )
-    }
     options {
         withCredentials(moleculePdpsJenkinsCreds())
     }
