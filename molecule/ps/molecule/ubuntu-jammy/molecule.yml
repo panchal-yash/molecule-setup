@@ -22,7 +22,7 @@ provisioner:
     destroy: ../../playbooks/destroy.yml
     prepare: ../../playbooks/prepare.yml
     cleanup: ../../playbooks/cleanup.yml
-    converge: ../../tasks/install.yml
+    converge: ../../playbooks/playbook.yml
 scenario:
   name: ubuntu-jammy
   destroy_sequence:

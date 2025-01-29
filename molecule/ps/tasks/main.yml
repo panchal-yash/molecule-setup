@@ -1,0 +1,287 @@
+---
+#-- Enable Percona Release
+  - name: Install percona-release package Debian Noble
+    shell: |
+      wget https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+      apt install ./percona-release_latest.generic_all.deb
+      apt update
+    when: ansible_os_family == "Debian" and ansible_distribution_release == "noble"
+
+  - name: Install percona-release package Debian
+    when: ansible_os_family == "Debian"
+    apt:
+      deb: https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+    when: ansible_os_family == "Debian" and ansible_distribution_release != "noble"
+
+  - name: Install percona-release package RedHat
+    command: yum -y install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+    when: ansible_os_family == "RedHat"
+
+  - name: clean and update yum cache
+    when: ansible_os_family == "RedHat"
+    shell: |
+      yum clean all
+
+
+#-- Enable Testing Repo
+
+  - name: disable the mysql module on RHEL/CentOS 8
+    command: /usr/bin/dnf module disable mysql -y
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+  - name: Install percona repository package for Debain
+    apt:
+      deb: https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+    when: ansible_os_family == "Debian"
+
+  - name: Receive GPG key 1
+    command: "gpg --batch --keyserver keyserver.ubuntu.com --recv-keys {{ percona_key1 }}"
+    environment:
+      GNUPGHOME: "{{ gnupg_home }}"
+    when: ansible_os_family == "RedHat"
+
+  - name: Export GPG key 1
+    command: "gpg --batch --export --armor {{ percona_key1 }}"
+    register: gpg_key1
+    environment:
+      GNUPGHOME: "{{ gnupg_home }}"
+    when: ansible_os_family == "RedHat"
+
+  - name: Save GPG key 1 to file
+    copy:
+      content: "{{ gpg_key1.stdout }}"
+      dest: "{{ percona_key1_file }}"
+      mode: '0644'
+    when: ansible_os_family == "RedHat"
+
+  - name: Import GPG keys with rpmkeys
+    command: "rpmkeys --import {{ percona_key1_file }}"
+    when: ansible_os_family == "RedHat"
+
+  - name: Install percona repository package for RHEL
+    yum: name=https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+    when: ansible_os_family == "RedHat"
+
+  - name: Add ARM support into percona-release
+    shell: sed -i "s|x86_64|x86_64 aarch64|" /usr/bin/percona-release
+    when: ansible_architecture == "aarch64" or ansible_architecture == "arm64"
+
+  - name: enable the PS-84-LTS testing repo
+    command: percona-release enable-only ps-84-lts testing
+
+  - name: enable the pxb-84 release repo
+    command: percona-release enable pxb-84-lts release
+    when: ansible_distribution_release == "noble"
+
+  - name: Clean YUM cache
+    command: yum clean all
+    when: ansible_os_family == "RedHat"
+
+  - name: Update YUM cache
+    command: yum makecache
+    when: ansible_os_family == "RedHat"
+
+  - name: Update APT cache
+    apt:
+      update_cache: yes
+    when: ansible_os_family == "Debian"
+
+#-- Install PS
+
+  - name: install Percona Server deb packages
+    apt:
+      name: "{{ packages }}"
+      update_cache: yes
+      state: latest
+    vars:
+      packages:
+      - percona-server-server{{ pro_suf | default('') }}
+      - percona-server-test{{ pro_suf | default('') }}
+      - percona-server{{ pro_suf | default('') }}-dbg
+      - percona-server{{ pro_suf | default('') }}-source
+      - percona-server-client{{ pro_suf | default('') }}
+      - percona-server-rocksdb{{ pro_suf | default('') }}
+      - percona-mysql-router{{ pro_suf | default('') }}
+    when: ansible_os_family == "Debian"
+    environment:
+      PERCONA_TELEMETRY_URL: "https://check-dev.percona.com/v1/telemetry/GenericReport"
+
+  - name: get list of enabled dnf modules on centos 8
+    command: dnf module list --enabled
+    register: enabled_dnf_modules
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version >= "8"
+
+  - name: list enabled dnf modules on centos 8
+    debug:
+      var: enabled_dnf_modules
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version >= "8"
+
+  - name: disable the mysql module on RHEL/CentOS 8
+    command: yum module disable mysql -y
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+  - name: disable the mariadb module on RHEL/CentOS 8
+    command: yum module disable mariadb -y
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+  - name: install Percona Server rpm packages RHEL7
+    yum:
+      name: "{{ packages }}"
+      state: latest
+      disablerepo: "epel"
+      update_cache: yes
+    vars:
+      packages:
+      - percona-server-server{{ pro_suf | default('') }}
+      - percona-mysql-router{{ pro_suf | default('') }}
+      - percona-server-client{{ pro_suf | default('') }}
+      - percona-server-test{{ pro_suf | default('') }}
+      - percona-server{{ pro_suf | default('') }}-debuginfo
+      - percona-server-devel{{ pro_suf | default('') }}
+      - percona-server-rocksdb{{ pro_suf | default('') }}
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version <= "7"
+    environment:
+      PERCONA_TELEMETRY_URL: "https://check-dev.percona.com/v1/telemetry/GenericReport"
+
+  - name: install Percona Server rpm packages RHEL8+
+    yum:
+      name: "{{ packages }}"
+      state: latest
+      disablerepo: "epel"
+      update_cache: yes
+    vars:
+      packages:
+      - percona-server-server{{ pro_suf | default('') }}
+      - percona-mysql-router{{ pro_suf | default('') }}
+      - percona-server-client{{ pro_suf | default('') }}
+      - percona-server-test{{ pro_suf | default('') }}
+      - percona-server{{ pro_suf | default('') }}-debuginfo
+      - percona-server-devel{{ pro_suf | default('') }}
+      - percona-server-rocksdb{{ pro_suf | default('') }}
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version >= "8"
+    environment:
+      PERCONA_TELEMETRY_URL: "https://check-dev.percona.com/v1/telemetry/GenericReport"
+
+
+#-------------
+
+  - name: download package-testing repo branch with wget
+    command: "{{ item }}"
+    with_items:
+    - rm -rf /package-testing
+    - rm -f master.zip
+    - wget --no-check-certificate -O master.zip "https://github.com/{{ git_account }}/package-testing/archive/{{ branch }}.zip"
+    - unzip master.zip
+    - rm -f master.zip
+    - mv "package-testing-{{ branch }}" /package-testing
+    vars:
+      branch: "{{ lookup('env', 'TESTING_BRANCH') | default('master', true) }}"
+      git_account: "{{ lookup('env', 'TESTING_GIT_ACCOUNT') | default('Percona-QA', true) }}"
+
+  - name: install latest bats from github
+    command: "{{ item }}"
+    with_items:
+    - rm -f master.zip
+    - wget --no-check-certificate -O master.zip https://github.com/sstephenson/bats/archive/master.zip
+    - unzip master.zip
+    - rm -f master.zip
+    - bats-master/install.sh /usr/local
+    - rm -rf bats-master
+
+#---------------
+
+  - name: download and extract world database
+    command: "{{ item }}"
+    with_items:
+    - wget --no-check-certificate -P /package-testing https://raw.githubusercontent.com/Percona-QA/percona-qa/master/sample_db/world.sql
+
+  - name: start mysql service
+    service: name=mysql state=started
+
+  - name: set root password on centos
+    command: /package-testing/setpass_57.sh
+    when: ansible_os_family == "RedHat"
+
+  - name: disable selinux on centos for TokuDB to work
+    shell: setenforce 0 || true
+    when: ansible_os_family == "RedHat"
+
+#  - name: install tokudb and restart server
+#    command: /usr/bin/ps-admin --enable-tokudb
+
+  - name: restart mysql service
+    service: name=mysql state=restarted
+
+#  - name: re-run ps-admin to finish tokudb install
+#    command: /usr/bin/ps-admin --enable-tokudb
+
+  - name: install percona-mysql-shell package for CentOS
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - percona-mysql-shell
+    when: ansible_os_family == "RedHat"
+
+  - name: install percona-mysql-shell package for Debian/Ubuntu
+    apt:
+      update_cache: yes
+      state: present
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - percona-mysql-shell
+    when: ansible_os_family == "Debian"
+
+#  - name: check that Percona Server version is correct
+#    command: /package-testing/version_check.sh ps80
+#
+#  - name: check that Percona Server package versions are correct
+#    command: /package-testing/package_check.sh ps80
+#
+#  - name: re-run ps_admin to install rocksdb
+#    command: /usr/bin/ps-admin --enable-rocksdb
+#
+#  - name: install plugins, import world database, test tokudb
+#    command: /package-testing/plugins_test_80.sh ps
+#
+#  - name: check the clone and data masking plugins
+#    command: /package-testing/scripts/ps_clone_dm_plugin_test.sh
+#
+#  - name: run some MyRocks tests
+#    command: /package-testing/scripts/ps_myrocks_test.sh
+#
+#  - name: run mysql compression tests script
+#    command: /package-testing/scripts/mysql-comp-test/mysql_comp_test.sh ps80
+#
+#  - name: run bats unit tests for ps-admin script
+#    command: /usr/local/bin/bats /package-testing/bats/ps-admin_unit.bats
+#
+#  - name: run bats integration tests for ps-admin script
+#    command: /usr/local/bin/bats /package-testing/bats/ps-admin_integration.bats
+#
+#  - name: install 3rd party packages with apt
+#    apt:
+#      name: "{{ packages }}"
+#    vars:
+#      packages:
+#      - rsyslog-mysql
+#    when: ansible_os_family == "Debian"
+#
+#  - name: install 3rd party packages with yum
+#    yum:
+#      name: "{{ packages }}"
+#    vars:
+#      packages:
+#      - rsyslog-mysql
+#    when: ansible_os_family == "RedHat"
+#
+#  - name: run bats tests for mysql init scripts
+#    command: /usr/local/bin/bats /package-testing/bats/mysql-init-scripts.bats
+#
+#  - name: start mysql service
+#    service: name=mysql state=started
+#
+#  - name: check that mysqladmin shutdown works correctly
+#    command: /package-testing/madmin_check.sh
+
